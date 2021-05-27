@@ -17,7 +17,7 @@ NUM_WIDTH = None
 # All values must be chosen between 0 and 1 as fractions of length and width
 DISTS = [
     (0.5, 0.5, 1.0, 1.0),
-    (0.6, 0.6, 2.5, 2.5)
+    (0.6, 0.6, 2.0, 2.0)
 ]
 
 
@@ -85,25 +85,55 @@ def generate():
                             break
                         i += 1
     if valid:
-        num_width = int(num_width)
-        num_height = int(num_height)
-        center_points = [(x * h + (h / 2), y * w + (w / 2)) for y in range(num_width) for x in range(num_height)]
-        arr = np.zeros((HEIGHT, WIDTH))
-        values = [0] * (num_width * num_height)
-        for dist in DISTS:
-            distribution = multivariate_normal([dist[0] * HEIGHT, dist[1] * WIDTH],
-                                               [[dist[2] * HEIGHT, 0], [0, dist[3] * WIDTH]])
-            results = distribution.pdf(center_points)
-            max_val = max(results)
-            results = [i / max_val for i in results]
-            new_values = [n if n > o else o for n, o in zip(results, values)]
-            values = new_values
-        for val, point in zip(values, center_points):
-            arr[int(point[0] - (h / 2)): int(point[0] + (h / 2)),
-                int(point[1] - (w / 2)): int(point[1] + (w / 2))] = val * 255
-        img = Image.fromarray(np.uint8(arr), 'L')
-        img.show()
-        img.save("heatmap.png")
+        heatmap_max(num_width, num_height, w, h)
+        heatmap_add(num_width, num_height, w, h)
+
+
+def heatmap_max(num_width, num_height, w, h):
+    num_width = int(num_width)
+    num_height = int(num_height)
+    center_points = [(x * h + (h / 2), y * w + (w / 2)) for y in range(num_width) for x in range(num_height)]
+    arr = np.zeros((HEIGHT, WIDTH))
+    values = [0] * (num_width * num_height)
+    for dist in DISTS:
+        distribution = multivariate_normal([dist[0] * HEIGHT, dist[1] * WIDTH],
+                                           [[dist[2] * HEIGHT, 0], [0, dist[3] * WIDTH]])
+        results = distribution.pdf(center_points)
+        max_val = max(results)
+        results = [(i / max_val) * ((dist[2] + dist[3]) / 2) for i in results]
+        new_values = [n if n > o else o for n, o in zip(results, values)]
+        values = new_values
+    max_val = max(values)
+    for val, point in zip(values, center_points):
+        arr[int(point[0] - (h / 2)): int(point[0] + (h / 2)),
+            int(point[1] - (w / 2)): int(point[1] + (w / 2))] = (val / max_val) * 255
+    img = Image.fromarray(np.uint8(arr), 'L')
+    img.show()
+    img.save("heatmap_max.png")
+
+
+def heatmap_add(num_width, num_height, w, h):
+    num_width = int(num_width)
+    num_height = int(num_height)
+    center_points = [(x * h + (h / 2), y * w + (w / 2)) for y in range(num_width) for x in range(num_height)]
+    arr = np.zeros((HEIGHT, WIDTH))
+    values = [0] * (num_width * num_height)
+    for dist in DISTS:
+        distribution = multivariate_normal([dist[0] * HEIGHT, dist[1] * WIDTH],
+                                           [[dist[2] * HEIGHT, 0], [0, dist[3] * WIDTH]])
+        results = distribution.pdf(center_points)
+        max_val = max(results)
+        results = [(i / max_val) * ((dist[2] + dist[3]) / 2) for i in results]
+        # new_values = [n if n > o else o for n, o in zip(results, values)]
+        new_values = [n + o for n, o in zip(results, values)]
+        values = new_values
+    max_val = max(values)
+    for val, point in zip(values, center_points):
+        arr[int(point[0] - (h / 2)): int(point[0] + (h / 2)),
+            int(point[1] - (w / 2)): int(point[1] + (w / 2))] = (val / max_val) * 255
+    img = Image.fromarray(np.uint8(arr), 'L')
+    img.show()
+    img.save("heatmap_add.png")
 
 
 if __name__ == "__main__":
